@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -g
 LIB = 
 
-SRC = src/main.c
+SRC = src/main.c src/process.c
 OBJ = $(SRC:.c=.o)
  
 EXE = allocate

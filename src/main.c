@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "config.h"
+#include "process.h"
 
 extern char* optarg;
 extern int optind, opterr, optopt;
@@ -20,6 +21,13 @@ int main(int argc, char** argv) {
 
     FILE* input = fopen(run_opts->filename, "r");
     assert(input);
+
+    char buffer[MAX_PROCESS_LINE_LENGTH + 1];
+
+    while (fgets(buffer, MAX_PROCESS_LINE_LENGTH, input) != NULL) {
+        process_t* process = parse_process(buffer);
+        printf("%d %s %d %d\n", process->arrived, process->name, process->service, process->mem);
+    }
 
     exit(EXIT_SUCCESS);
 }
