@@ -14,6 +14,6 @@ typedef struct process {
 
 process_t* parse_process(char* line);
 
-
+void process_free(process_t* p);
 
 #endif

@@ -23,4 +23,6 @@ void enqueue(queue_t* queue, void* data);
 
 int queue_empty(queue_t* queue);
 
+void queue_free(queue_t* q, void (*data_free)(void* data));
+
 #endif

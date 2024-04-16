@@ -50,3 +50,10 @@ void enqueue(queue_t* queue, void* data) {
     queue->tail = new;
     queue->len = queue->len + 1;
 }
+
+void queue_free(queue_t* q, void (*data_free)(void* data)) {
+    while(q->len > 0) {
+        data_free(dequeue(q));
+    }
+    free(q);
+}

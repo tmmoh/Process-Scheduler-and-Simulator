@@ -30,5 +30,6 @@ void rr_simulate_cycle(rr_t* rr);
 
 void rr_start_next(rr_t* rr);
 
+void rr_free(rr_t* rr);
 
 #endif

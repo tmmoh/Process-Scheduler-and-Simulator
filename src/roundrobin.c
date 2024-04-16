@@ -93,7 +93,7 @@ void rr_finish_process(rr_t* rr) {
     rr->total_overhead += overhead;
     rr->max_overhead = overhead > rr->max_overhead ? overhead : rr->max_overhead;
 
-    free(rr->running);
+    process_free(rr->running);
     rr->running = NULL;
 }
 
@@ -101,4 +101,10 @@ void rr_finish_process(rr_t* rr) {
 void rr_start_next(rr_t* rr) {
     rr->running = dequeue(rr->ready);
     printf("%ld,RUNNING,process-name=%s,remaining-time=%lld\n", rr->time, rr->running->name, rr->running->remaining);
+}
+
+void rr_free(rr_t* rr) {
+    queue_free(rr->ready, (void*) process_free);
+    queue_free(rr->processes, (void*) process_free);
+    free(rr);
 }

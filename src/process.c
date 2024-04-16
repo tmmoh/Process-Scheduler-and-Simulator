@@ -28,3 +28,7 @@ process_t* parse_process(char* line) {
     return process;
 }
 
+void process_free(process_t* p) {
+    free(p->name);
+    free(p);
+}

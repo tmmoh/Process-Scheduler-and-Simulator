@@ -34,6 +34,9 @@ int main(int argc, char** argv) {
     }
 
     rr_simulate(rr);
+    rr_free(rr);
+    free(run_opts);
+    fclose(input);
 
     exit(EXIT_SUCCESS);
 }
@@ -88,3 +91,4 @@ void parse_fail(char* process_name) {
     fprintf(stderr, "Usage: %s -f <filename> -m (infinite | first-fit | paged | virtual) -q (1 | 2 | 3)\n", process_name);
     exit(EXIT_FAILURE);
 }
+
