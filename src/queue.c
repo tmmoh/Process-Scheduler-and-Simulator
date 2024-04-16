@@ -39,7 +39,7 @@ void enqueue(queue_t* queue, void* data) {
     new->data = data;
     new->next = NULL;
 
-    if (queue->len == 0) {
+    if (queue->len <= 0) {
         queue->head = queue->tail = new;
         queue->len = 1;
         return;

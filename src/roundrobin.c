@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "roundrobin.h"
 #include "queue.h"
 #include "process.h"
+
+#define TWO_DP(x) (round(x * 100.0) / 100.0)
 
 rr_t* new_rr(int quantum) {
     rr_t* rr = malloc(sizeof(*rr));
@@ -15,6 +18,10 @@ rr_t* new_rr(int quantum) {
     rr->running = NULL;
     rr->ready = new_queue();
     rr->processes = new_queue();
+    rr->process_count = 0;
+    rr->total_turnaround = 0;
+    rr->total_overhead = 0;
+    rr->max_overhead = 0;
 
     return rr;
 }
@@ -31,6 +38,10 @@ void rr_simulate(rr_t* rr) {
     while (rr->running || rr->processes->len > 0) {
         rr_simulate_cycle(rr);
     }
+
+    printf("Turnaround time %.0f\n", round(rr->total_turnaround / rr->process_count));
+    printf("Time overhead %.2f %.2f\n", TWO_DP(rr->max_overhead), TWO_DP(rr->total_overhead / rr->process_count));
+    printf("Makespan %ld\n", rr->time);
 }
 
 void rr_simulate_cycle(rr_t* rr) {
@@ -47,8 +58,9 @@ void rr_simulate_cycle(rr_t* rr) {
     } while (arrival <= rr->time);
 
     // Check finished process
-    if (rr->running && rr->running->service <= 0) {
+    if (rr->running && rr->running->remaining <= 0) {
         rr_finish_process(rr);
+        if (rr->ready->len < 1 && rr->processes->len < 1) return;
     }
 
     // Check if there's waiting ready processes
@@ -66,12 +78,20 @@ void rr_simulate_cycle(rr_t* rr) {
     // Run for a quantum
     rr->time += rr->quantum;
     if (rr->running) {
-        rr->running->service -= rr->quantum;
+        rr->running->remaining -= rr->quantum;
     }
 }
 
 void rr_finish_process(rr_t* rr) {
-    printf("%d,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
+    printf("%ld,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
+
+    int turnaround = rr->time - rr->running->arrived;
+    rr->process_count += 1;
+    rr->total_turnaround += turnaround;
+    
+    double overhead = (double) turnaround / (double) rr->running->service;
+    rr->total_overhead += overhead;
+    rr->max_overhead = overhead > rr->max_overhead ? overhead : rr->max_overhead;
 
     free(rr->running);
     rr->running = NULL;
@@ -80,5 +100,5 @@ void rr_finish_process(rr_t* rr) {
 
 void rr_start_next(rr_t* rr) {
     rr->running = dequeue(rr->ready);
-    printf("%d,RUNNING,process-name=%s,remaining-time=%d\n", rr->time, rr->running->name, rr->running->service);
+    printf("%ld,RUNNING,process-name=%s,remaining-time=%lld\n", rr->time, rr->running->name, rr->running->remaining);
 }

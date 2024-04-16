@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g
-LIB = 
+LIB = -lm
 
 SRC = src/main.c src/process.c src/queue.c src/roundrobin.c
 OBJ = $(SRC:.c=.o)

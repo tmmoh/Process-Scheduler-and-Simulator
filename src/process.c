@@ -20,6 +20,7 @@ process_t* parse_process(char* line) {
 
     tok = strtok(NULL, delim);
     process->service = atoi(tok);
+    process->remaining = process->service;
 
     tok = strtok(NULL, delim);
     process->mem = atoi(tok);

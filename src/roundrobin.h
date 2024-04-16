@@ -6,10 +6,14 @@
 
 typedef struct rr_scheduler {
     int quantum;
-    int time;
+    size_t time;
     process_t* running;
     queue_t* ready;
     queue_t* processes;
+    size_t process_count;
+    double total_turnaround;
+    double total_overhead;
+    double max_overhead;
 } rr_t;
 
 rr_t* new_rr(int quantum);

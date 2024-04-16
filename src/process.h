@@ -5,9 +5,10 @@
 #define MAX_PROCESS_LINE_LENGTH (10 + 8 + 10 + 4 + 4)
 
 typedef struct process {
-    int arrived;
+    size_t arrived;
     char* name;
-    int service;
+    size_t service;
+    long long remaining;
     int mem;
 } process_t;
 
