@@ -6,6 +6,7 @@
 
 #include "config.h"
 #include "process.h"
+#include "roundrobin.h"
 
 extern char* optarg;
 extern int optind, opterr, optopt;
@@ -24,10 +25,15 @@ int main(int argc, char** argv) {
 
     char buffer[MAX_PROCESS_LINE_LENGTH + 1];
 
+    rr_t* rr = new_rr(run_opts->quantum);
+
+    // Assumes processes are in arrival time order in file
     while (fgets(buffer, MAX_PROCESS_LINE_LENGTH, input) != NULL) {
         process_t* process = parse_process(buffer);
-        printf("%d %s %d %d\n", process->arrived, process->name, process->service, process->mem);
+        rr_add_process(rr, process);
     }
+
+    rr_simulate(rr);
 
     exit(EXIT_SUCCESS);
 }

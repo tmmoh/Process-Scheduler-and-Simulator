@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "process.h"
@@ -25,3 +26,4 @@ process_t* parse_process(char* line) {
 
     return process;
 }
+
