@@ -25,6 +25,18 @@ void requeue_head(queue_t* q) {
     q->tail->next = NULL; */
 }
 
+void requeue(queue_t* q, node_t* node) {
+    if (q->tail == node) return;
+
+    if (q->head == node) return requeue_head(q);
+
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+
+    enqueue(q, node->data);
+    free(node);
+}
+
 void queue_free(queue_t* q, void (*data_free)(void* data)) {
     list_free((list_t*) q, data_free);
 }

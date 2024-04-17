@@ -16,4 +16,6 @@ void requeue_head(queue_t* q);
 
 void queue_free(queue_t* q, void (*data_free)(void* data));
 
+void requeue(queue_t* q, node_t* node);
+
 #endif

@@ -5,7 +5,8 @@
 #include "process.h"
 
 
-cont_mem_t* mem_init() {
+
+cont_mem_t* cont_mem_init() {
     cont_mem_t* mem = (cont_mem_t*) new_list();
     mem_block_t* block = malloc(sizeof(*block));
     assert(block);
@@ -158,18 +159,132 @@ int first_fit(cont_mem_t* mem, process_t* p) {
     return 0;
 }
 
-int mem_usage(cont_mem_t* mem) {
-    node_t* curr = mem->head;
-    double used = 0;
-    double total = 0;
+void free_pages(paged_mem_t* mem, process_t* p) {
+    page_table_t* table = (page_table_t*) p->mem;
+    for (int i = 0; i < table->n_pages; i++) {
+        mem->frames[table->pages[i]] = 0;
+    }
+    mem->allocatable += table->n_pages * FRAME_SIZE;
+    mem->used -= p->mem_size;
+}
 
-    while (curr) {
-        mem_block_t* block = (mem_block_t*) curr->data;
-        if (block->allocated) used += block->size;
-        total += block->size;
+page_table_t* page_table_init(size_t mem_size) {
+    page_table_t* table = malloc(sizeof(*table));
+    assert(table);
 
-        curr = curr->next;
+    table->n_pages = ceil((long long) mem_size / (double) FRAME_SIZE);
+    table->pages = malloc(sizeof(*table->pages) * table->n_pages);
+    assert(table->pages);
+    
+    return table;
+}
+
+int page_fit(paged_mem_t* mem, process_t* p) {
+    if (p->mem_size > mem->allocatable) {
+        return 0;
     }
 
-    return ceil(used/total * 100);
+    page_table_t* table = page_table_init(p->mem_size);
+
+    int frame = 0;
+    for (int i = 0; i < table->n_pages; i++) {
+       // Should never go past max index since memory is allocatable
+       // Find the next unallocated frame
+       while (mem->frames[frame]) frame++;
+
+       // Allocate frame
+       table->pages[i] = frame;
+       mem->frames[frame] = 1;
+       mem->allocatable -= FRAME_SIZE;
+    }
+
+    mem->used += p->mem_size;
+
+    p->mem = table;
+
+    return 1;
+}
+
+paged_mem_t* paged_mem_init() {
+    paged_mem_t* mem = malloc(sizeof(*mem));
+    assert(mem);
+
+    mem->allocatable = MAX_MEM;
+    mem->n_frames = MAX_MEM / FRAME_SIZE;
+    mem->frames = calloc(mem->n_frames, sizeof(int));
+
+    return mem;
+}
+
+int mem_usage(mem_t* mem) {
+    
+    switch (mem->type) {
+        case INFINITE:
+            return 0;
+        case FIRST_FIT:
+            node_t* curr = ((cont_mem_t*) mem->data)->head;
+            double used = 0;
+            double total = 0;
+
+            while (curr) {
+                mem_block_t* block = (mem_block_t*) curr->data;
+                if (block->allocated) used += block->size;
+                total += block->size;
+
+                curr = curr->next;
+            }
+
+            return ceil(used/total * 100);
+        case PAGED:
+            return ceil(((paged_mem_t*) mem->data)->used / (double)MAX_MEM * 100.0); 
+        case VIRTUAL:
+    }
+
+    return 0;
+}
+
+mem_t* mem_init(mem_opt_t type) {
+    mem_t* mem = malloc(sizeof(*mem));
+    assert(mem);
+
+    mem->type = type;
+    mem->data = NULL;
+
+    switch (mem->type) {
+        case INFINITE:
+            break;
+        case FIRST_FIT:
+            mem->data = cont_mem_init();
+            break;
+        case PAGED:
+            mem->data = paged_mem_init();
+            break;
+        case VIRTUAL:
+    }
+
+    return mem;
+}
+
+int mem_alloc(mem_t* mem, process_t* p) {
+    switch (mem->type) {
+        case INFINITE:
+        case FIRST_FIT:
+            return first_fit(mem->data, p);
+        case PAGED:
+            return page_fit(mem->data, p);
+        case VIRTUAL:
+    }
+
+    return 0;
+}
+
+void mem_free(mem_t* mem, process_t* p) {
+    switch (mem->type) {
+        case INFINITE:
+        case FIRST_FIT:
+            return free_block((node_t*) p->mem);
+        case PAGED:
+            return free_pages(mem->data, p);
+        case VIRTUAL:
+    }
 }

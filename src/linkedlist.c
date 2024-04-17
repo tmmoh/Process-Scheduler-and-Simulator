@@ -24,6 +24,7 @@ void* list_remove_head(list_t* list) {
     node_t* node = list->head;
     void* data = node->data;
     list->head = node->next;
+    if (list->head) list->head->prev = NULL;
 
     list->len -= 1;
 
@@ -46,6 +47,7 @@ void list_add_tail(list_t* list, void* data) {
         return;
     }
 
+    new->prev = list->tail;
     list->tail->next = new;
     list->tail = new;
     list->len = list->len + 1;

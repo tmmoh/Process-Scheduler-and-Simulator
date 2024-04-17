@@ -12,7 +12,8 @@ typedef struct rr_scheduler {
     process_t* running;
     queue_t* ready;
     queue_t* processes;
-    cont_mem_t* mem;
+    queue_t* lru;
+    mem_t* mem;
     size_t process_count;
     double total_turnaround;
     double total_overhead;

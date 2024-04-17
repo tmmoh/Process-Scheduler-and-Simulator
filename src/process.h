@@ -13,7 +13,7 @@ struct process {
     size_t service;
     long long remaining;
     int mem_size;
-    node_t* mem;
+    void* mem;
 };
 
 process_t* parse_process(char* line);
