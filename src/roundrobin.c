@@ -64,6 +64,8 @@ void rr_simulate_cycle(rr_t* rr) {
 
     // Check if there's waiting ready processes
     if (rr->ready->len > 0) {
+        if (rr->running) rr_ready_process(rr, rr->running);
+
         switch(rr->opts->mem) {
             case INFINITE:
                 // Run the next ready process
@@ -120,9 +122,6 @@ void rr_finish_process(rr_t* rr) {
 
 
 void rr_start_next(rr_t* rr) {
-    if (rr->running) {
-        rr_ready_process(rr, rr->running);
-    }
     rr->running = dequeue(rr->ready);
     printf("%ld,RUNNING,process-name=%s,remaining-time=%lld", rr->time, rr->running->name, rr->running->remaining);
 

@@ -19,9 +19,10 @@ void enqueue(queue_t* queue, void* data) {
 }
 
 void requeue_head(queue_t* q) {
-    q->tail = q->head;
+    enqueue(q, dequeue(q));
+    /* q->tail = q->head;
     if (q->head->next) q->head = q->head->next;
-    q->tail->next = NULL;
+    q->tail->next = NULL; */
 }
 
 void queue_free(queue_t* q, void (*data_free)(void* data)) {
