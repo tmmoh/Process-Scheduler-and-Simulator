@@ -3,20 +3,23 @@
 
 #include "process.h"
 #include "queue.h"
+#include "config.h"
+#include "memory.h"
 
 typedef struct rr_scheduler {
-    int quantum;
+    run_opts_t* opts;
     size_t time;
     process_t* running;
     queue_t* ready;
     queue_t* processes;
+    cont_mem_t* mem;
     size_t process_count;
     double total_turnaround;
     double total_overhead;
     double max_overhead;
 } rr_t;
 
-rr_t* new_rr(int quantum);
+rr_t* new_rr(run_opts_t* opts);
 
 void rr_add_process(rr_t* rr, process_t* process);
 

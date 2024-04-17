@@ -1,59 +1,29 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "queue.h"
+#include "linkedlist.h"
 
 
 queue_t* new_queue() {
-    queue_t* q = malloc(sizeof(*q));
-    assert(q);
-
-    q->head = NULL;
-    q->tail = NULL;
-    q->len = 0;
-
-    return q;
+    return (queue_t*) new_list();
 }
 
 
 void* dequeue(queue_t* queue) {
-    if (queue->len < 1) {
-        return NULL;
-    } 
-
-    node_t* node = queue->head;
-    void* data = node->data;
-    queue->head = node->next;
-
-    queue->len -= 1;
-
-    free(node);
-
-    return data;
+    return list_remove_head((list_t*) queue);
 }
 
 
 void enqueue(queue_t* queue, void* data) {
-    node_t* new = malloc(sizeof(*new));
-    assert(new);
+    list_add_tail((list_t*) queue, data);
+}
 
-    new->data = data;
-    new->next = NULL;
-
-    if (queue->len <= 0) {
-        queue->head = queue->tail = new;
-        queue->len = 1;
-        return;
-    }
-
-
-    queue->tail->next = new;
-    queue->tail = new;
-    queue->len = queue->len + 1;
+void requeue_head(queue_t* q) {
+    q->tail = q->head;
+    if (q->head->next) q->head = q->head->next;
+    q->tail->next = NULL;
 }
 
 void queue_free(queue_t* q, void (*data_free)(void* data)) {
-    while(q->len > 0) {
-        data_free(dequeue(q));
-    }
-    free(q);
+    list_free((list_t*) q, data_free);
 }

@@ -4,16 +4,14 @@
 #include <math.h>
 
 #include "roundrobin.h"
-#include "queue.h"
-#include "process.h"
 
 #define TWO_DP(x) (round(x * 100.0) / 100.0)
 
-rr_t* new_rr(int quantum) {
+rr_t* new_rr(run_opts_t* opts) {
     rr_t* rr = malloc(sizeof(*rr));
     assert(rr);
 
-    rr->quantum = quantum;
+    rr->opts = opts;
     rr->time = 0;
     rr->running = NULL;
     rr->ready = new_queue();
@@ -22,6 +20,7 @@ rr_t* new_rr(int quantum) {
     rr->total_turnaround = 0;
     rr->total_overhead = 0;
     rr->max_overhead = 0;
+    rr->mem = mem_init();
 
     return rr;
 }
@@ -65,24 +64,46 @@ void rr_simulate_cycle(rr_t* rr) {
 
     // Check if there's waiting ready processes
     if (rr->ready->len > 0) {
-        // Ready the running process
-        if (rr->running) {
-            rr_ready_process(rr, rr->running);
-            rr->running = NULL;
+        switch(rr->opts->mem) {
+            case INFINITE:
+                // Run the next ready process
+                rr_start_next(rr);
+                break;
+            case FIRST_FIT:
+                // Find the next process with allocated memory or can allocate memory
+                while (!((process_t*) rr->ready->head->data)->mem && !first_fit(rr->mem, rr->ready->head->data)) {
+                    requeue_head(rr->ready);
+                }
+                rr_start_next(rr);
+                break;
+            case PAGED:
+                break;
+            case VIRTUAL:
+                break;
         }
-
-        // Run the next ready process
-        rr_start_next(rr);
     }
 
+
     // Run for a quantum
-    rr->time += rr->quantum;
+    rr->time += rr->opts->quantum;
     if (rr->running) {
-        rr->running->remaining -= rr->quantum;
+        rr->running->remaining -= rr->opts->quantum;
     }
 }
 
 void rr_finish_process(rr_t* rr) {
+    switch (rr->opts->mem) {
+        case FIRST_FIT:
+            free_block(rr->running->mem);
+            break;
+        case INFINITE:
+            break;
+        case PAGED:
+            break;
+        case VIRTUAL:
+            break;
+    }
+
     printf("%ld,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
 
     int turnaround = rr->time - rr->running->arrived;
@@ -99,8 +120,25 @@ void rr_finish_process(rr_t* rr) {
 
 
 void rr_start_next(rr_t* rr) {
+    if (rr->running) {
+        rr_ready_process(rr, rr->running);
+    }
     rr->running = dequeue(rr->ready);
-    printf("%ld,RUNNING,process-name=%s,remaining-time=%lld\n", rr->time, rr->running->name, rr->running->remaining);
+    printf("%ld,RUNNING,process-name=%s,remaining-time=%lld", rr->time, rr->running->name, rr->running->remaining);
+
+    switch (rr->opts->mem) {
+        case FIRST_FIT:
+            printf(",musage=%d%%,allocated-at=%d", mem_usage(rr->mem), ((mem_block_t*) rr->running->mem->data)->start);
+            break;
+        case PAGED:
+            break;
+        case VIRTUAL:
+            break;
+        case INFINITE:
+            break;
+    }
+
+    printf("\n");
 }
 
 void rr_free(rr_t* rr) {

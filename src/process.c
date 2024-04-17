@@ -23,7 +23,9 @@ process_t* parse_process(char* line) {
     process->remaining = process->service;
 
     tok = strtok(NULL, delim);
-    process->mem = atoi(tok);
+    process->mem_size = atoi(tok);
+
+    process->mem = NULL;
 
     return process;
 }

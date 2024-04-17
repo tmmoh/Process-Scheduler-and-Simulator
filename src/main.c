@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 
     char buffer[MAX_PROCESS_LINE_LENGTH + 1];
 
-    rr_t* rr = new_rr(run_opts->quantum);
+    rr_t* rr = new_rr(run_opts);
 
     // Assumes processes are in arrival time order in file
     while (fgets(buffer, MAX_PROCESS_LINE_LENGTH, input) != NULL) {
