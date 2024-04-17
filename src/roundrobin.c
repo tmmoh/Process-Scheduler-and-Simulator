@@ -128,7 +128,7 @@ void rr_start_next(rr_t* rr) {
 
     switch (rr->opts->mem) {
         case FIRST_FIT:
-            printf(",musage=%d%%,allocated-at=%d", mem_usage(rr->mem), ((mem_block_t*) rr->running->mem->data)->start);
+            printf(",mem-usage=%d%%,allocated-at=%d", mem_usage(rr->mem), ((mem_block_t*) rr->running->mem->data)->start);
             break;
         case PAGED:
             break;

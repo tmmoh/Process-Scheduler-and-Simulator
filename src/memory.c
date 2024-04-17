@@ -101,7 +101,7 @@ void free_block(node_t* block) {
         return;
     }
 
-    if (!p->allocated && n->allocated) {
+    if (!p->allocated && !n->allocated) {
         // Merge all three
         prev->next = next->next;
         p->end = n->end;
