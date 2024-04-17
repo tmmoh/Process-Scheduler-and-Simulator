@@ -84,6 +84,7 @@ void free_block(node_t* block) {
 
     if (p->allocated && !n->allocated) {
         // Merge block with next
+        b->allocated = 0;
         block->next = next->next;
         b->end = n->end;
         b->size = b->end - b->start + 1;
@@ -128,13 +129,14 @@ int first_fit(cont_mem_t* mem, process_t* p) {
 
                 new_block->allocated = 0;
                 new_block->start = block->start + p->mem_size;
-                new_block->size = block->end - block->start + 1;
+                new_block->end = block->end;
+                new_block->size = new_block->end - new_block->start + 1;
+                new_block->prev = curr;
                 
                 block->allocated = 1;
-                block->end = block->start + p->mem_size - 1;
+                block->end = new_block->start - 1;
                 block->size = p->mem_size;
 
-                new_block->prev = curr;
 
                 node_t* new = malloc(sizeof(*new));
                 assert(new);
@@ -144,7 +146,7 @@ int first_fit(cont_mem_t* mem, process_t* p) {
                 new->next = curr->next;
                 curr->next = new;
 
-                p->mem = new;
+                p->mem = curr;
             }
 
             return 1;
