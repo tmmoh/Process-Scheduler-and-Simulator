@@ -171,5 +171,5 @@ int mem_usage(cont_mem_t* mem) {
         curr = curr->next;
     }
 
-    return ceil(used/total) * 100;
+    return ceil(used/total * 100);
 }
