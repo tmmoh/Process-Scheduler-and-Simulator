@@ -10,5 +10,8 @@ EXE = allocate
 $(EXE): $(OBJ) 
 	$(CC) $(CFLAGS) -o $(EXE) $(OBJ) $(LIB)
 
+format:
+	clang-format -style=file -i src/*.c src/*.h
+
 clean:
 	rm -f $(OBJ) $(EXE)

@@ -1,18 +1,18 @@
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "process.h"
 
 #define DELIM " "
 
 // Parses and creates a process from a process line
-process_t* parse_process(char* line) {
-    char* delim = DELIM;
-    char* tok;
+process_t *parse_process(char *line) {
+    char *delim = DELIM;
+    char *tok;
 
-    process_t* process = malloc(sizeof(*process));
+    process_t *process = malloc(sizeof(*process));
     assert(process);
 
     // Parse process arrival time
@@ -39,7 +39,7 @@ process_t* parse_process(char* line) {
 }
 
 // Frees a process and all associated fields
-void process_free(process_t* p) {
+void process_free(process_t *p) {
     free(p->name);
     free(p);
 }

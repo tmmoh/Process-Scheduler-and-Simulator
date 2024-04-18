@@ -11,10 +11,9 @@ typedef enum mem_opt {
 
 // Struct to hold all command line arguments and run options
 typedef struct run_options {
-    char* filename;
+    char *filename;
     mem_opt_t mem;
     int quantum;
 } run_opts_t;
-
 
 #endif

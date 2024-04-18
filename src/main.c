@@ -1,8 +1,8 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <assert.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "process.h"
@@ -11,31 +11,31 @@
 #define OPT_STRING ":f:m:q:"
 
 // Argument buffer for getopts()
-extern char* optarg;
+extern char *optarg;
 
 // Parses run options from the command line
 // Returns a run_options struct with the arguments
-run_opts_t* parse_options(int argc, char** argv);
+run_opts_t *parse_options(int argc, char **argv);
 
 // Prints an error message to stderr and exits the process with an error
-void parse_fail(char* process_name);
+void parse_fail(char *process_name);
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 
-    run_opts_t* run_opts = parse_options(argc, argv);
+    run_opts_t *run_opts = parse_options(argc, argv);
 
-    FILE* input = fopen(run_opts->filename, "r");
+    FILE *input = fopen(run_opts->filename, "r");
     assert(input);
 
     char buffer[MAX_PROCESS_LINE_LENGTH + 1];
 
     // Create the round robin scheduler with the right configurations
-    rr_t* rr = new_rr(run_opts);
+    rr_t *rr = new_rr(run_opts);
 
     // Read all the processes from file and add them to the scheduler
     // Assumes processes are in arrival time order in file
     while (fgets(buffer, MAX_PROCESS_LINE_LENGTH, input) != NULL) {
-        process_t* process = parse_process(buffer);
+        process_t *process = parse_process(buffer);
         rr_add_process(rr, process);
     }
 
@@ -52,11 +52,11 @@ int main(int argc, char** argv) {
 
 // Parses run options from the command line
 // Returns a run_options struct with the arguments
-run_opts_t* parse_options(int argc, char** argv) {
-    run_opts_t* opts = malloc(sizeof(*opts));
+run_opts_t *parse_options(int argc, char **argv) {
+    run_opts_t *opts = malloc(sizeof(*opts));
     assert(opts);
 
-    char* optstring = OPT_STRING;
+    char *optstring = OPT_STRING;
     int c;
 
     int f_flag = 0, m_flag = 0, q_flag = 0;
@@ -66,42 +66,42 @@ run_opts_t* parse_options(int argc, char** argv) {
 
         switch (c) {
 
-            case 'f': // Read the filename used 
-                f_flag++;
-                opts->filename = optarg;
-                break;
+        case 'f': // Read the filename used
+            f_flag++;
+            opts->filename = optarg;
+            break;
 
-            case 'm': // Read the memory management type
-                m_flag++;
+        case 'm': // Read the memory management type
+            m_flag++;
 
-                if (strcmp(optarg, "infinite") == 0) {
-                    opts->mem = INFINITE;
-                } else if (strcmp(optarg, "first-fit") == 0) {
-                    opts->mem = FIRST_FIT;
-                } else if (strcmp(optarg, "paged") == 0) {
-                    opts->mem = PAGED;
-                } else if (strcmp(optarg, "virtual") == 0) {
-                    opts->mem = VIRTUAL;
-                } else {
-                    // Not a support memory option
-                    parse_fail(argv[0]);
-                }
-                break;
-
-            case 'q': // Read the quantum option
-                q_flag++;
-
-                int quantum = atoi(optarg);
-                if (quantum < 1 || quantum > 3) {
-                    // Not a supported memory option
-                    parse_fail(argv[0]);
-                }
-
-                opts->quantum = quantum;
-                break;
-
-            default: // Not a supported flag
+            if (strcmp(optarg, "infinite") == 0) {
+                opts->mem = INFINITE;
+            } else if (strcmp(optarg, "first-fit") == 0) {
+                opts->mem = FIRST_FIT;
+            } else if (strcmp(optarg, "paged") == 0) {
+                opts->mem = PAGED;
+            } else if (strcmp(optarg, "virtual") == 0) {
+                opts->mem = VIRTUAL;
+            } else {
+                // Not a support memory option
                 parse_fail(argv[0]);
+            }
+            break;
+
+        case 'q': // Read the quantum option
+            q_flag++;
+
+            int quantum = atoi(optarg);
+            if (quantum < 1 || quantum > 3) {
+                // Not a supported memory option
+                parse_fail(argv[0]);
+            }
+
+            opts->quantum = quantum;
+            break;
+
+        default: // Not a supported flag
+            parse_fail(argv[0]);
         }
     }
 
@@ -114,8 +114,10 @@ run_opts_t* parse_options(int argc, char** argv) {
 }
 
 // Prints an error message to stderr and exits the process with an error
-void parse_fail(char* process_name) {
-    fprintf(stderr, "Usage: %s -f <filename> -m (infinite | first-fit | paged | virtual) -q (1 | 2 | 3)\n", process_name);
+void parse_fail(char *process_name) {
+    fprintf(stderr,
+            "Usage: %s -f <filename> -m (infinite | first-fit | paged | "
+            "virtual) -q (1 | 2 | 3)\n",
+            process_name);
     exit(EXIT_FAILURE);
 }
-
