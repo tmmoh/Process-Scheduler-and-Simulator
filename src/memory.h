@@ -9,24 +9,58 @@
 #define MAX_MEM 2048
 #define FRAME_SIZE 4
 
+// Visible interface for memory management
 
+// Struct defines the memory management type and has an internal pointer to
+// the physical implementation of the memory management type
+typedef struct mem {
+    mem_opt_t type;
+    void* data;
+} mem_t;
+
+// Initialises a memory strucuture of the given type
+// To be used by a process scheduler
+mem_t* mem_init(mem_opt_t type);
+
+// Tries to allocate memory to given process
+// Returns 0 if unsuccessful, the amount of memory allocated otherwise
+int mem_alloc(mem_t* mem, process_t* p);
+
+// Frees the memory used by a provided process
+void mem_free(mem_t* mem, process_t* p);
+
+// Frees the memory structure and the internally used memory type struct
+void mem_struct_free(mem_t* mem);
+
+// Returns the percentage of used memory for the provided mem struct
+int mem_usage(mem_t* mem);
+
+// Contiguous memory structures and methods definitions --------------------------
+// -------------------------------------------------------------------------------
 typedef struct mem_block mem_block_t;
 struct mem_block {
     int allocated;
     int start;
     int end;
     int size;
-    node_t* prev;
 };
 
+// Contiguous memory is a wrapper struct over a doubly-linked list
 typedef list_t cont_mem_t;
 
-typedef struct page_table {
-    int* pages;
-    int n_pages;
-} page_table_t;
+// Initialises unallocated contiguous memory of size MAX_MEM
+cont_mem_t* cont_mem_init();
+
+// Tries to allocate memory to given process using a first-fit policy
+// Returns 0 if unsuccessful, the amount of memory allocated otherwise
+int first_fit(cont_mem_t* mem, process_t* p); 
+
+// Frees a block memory used by a provided process
+void free_block(cont_mem_t* mem, process_t* p);
 
 
+// Paged memory structures and methods definitions -------------------------------
+// -------------------------------------------------------------------------------
 
 typedef struct paged_mem {
     size_t allocatable;
@@ -35,25 +69,22 @@ typedef struct paged_mem {
     int n_frames;
 } paged_mem_t;
 
-cont_mem_t* cont_mem_init();
+typedef struct page_table {
+    int* pages;
+    int n_pages;
+} page_table_t;
 
-void free_block(node_t* block);
+// Initialises unallocated paged memory of size MAX_MEM and frame size FRAME_SIZE
+paged_mem_t* paged_mem_init();
 
-int first_fit(cont_mem_t* mem, process_t* p); 
+// Initialises a page table that covers a provided size of memory
+page_table_t* page_table_init(size_t mem_size);
 
+// Tries to allocate memorty to a given process using paged memory
+// Returns 0 if unsuccessful, the amount of memory allocated otherwise
+int page_fit(paged_mem_t* mem, process_t* p);
 
-typedef struct mem {
-    mem_opt_t type;
-    void* data;
-} mem_t;
-
-int mem_usage(mem_t* mem);
-
-mem_t* mem_init(mem_opt_t type);
-
-int mem_alloc(mem_t* mem, process_t* p);
-
-void mem_free(mem_t* mem, process_t* p);
-
+// Evicts the pages used by a provided process
+void evict_pages(paged_mem_t* mem, process_t* p);
 
 #endif

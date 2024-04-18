@@ -6,6 +6,7 @@
 #include "roundrobin.h"
 
 #define TWO_DP(x) (round(x * 100.0) / 100.0)
+#define MIN(a, b) (a < b ? a : b)
 
 rr_t* new_rr(run_opts_t* opts) {
     rr_t* rr = malloc(sizeof(*rr));
@@ -109,24 +110,20 @@ void rr_simulate_cycle(rr_t* rr) {
     // Run for a quantum
     rr->time += rr->opts->quantum;
     if (rr->running) {
-        rr->running->remaining -= rr->opts->quantum;
+        rr->running->remaining -= MIN(rr->running->remaining, rr->opts->quantum);
     }
 }
 
 void rr_finish_process(rr_t* rr) {
-    mem_free(rr->mem, rr->running);
 
-    /* node_t* curr = rr->lru->head;
+    node_t* curr = rr->lru->head;
     while(curr) {
-        if (curr->data == rr->running) {
-            if (curr->prev) curr->prev->next = curr->next;
-            if (curr->next) curr->next->prev = curr->prev;
-            free(curr);
+        if (rr->running == curr->data) {
+            queue_remove(rr->lru, curr);
             break;
         }
         curr = curr->next;
-    } */
-
+    }
     
 
     if (rr->opts->mem == PAGED) {
@@ -137,6 +134,8 @@ void rr_finish_process(rr_t* rr) {
         }
         printf("]\n");
     }
+
+    mem_free(rr->mem, rr->running);
     
     printf("%ld,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
 
@@ -159,16 +158,18 @@ void rr_start_next(rr_t* rr) {
     // Navigate through lru queue, find process and requeue
     // Or add process to lru queue if run for first time
     node_t* curr = rr->lru->head;
+    int found = 0;
     while(curr) {
         if (curr->data == rr->running) {
             requeue(rr->lru, curr);
+            found = 1;
             break;
         }
         curr = curr->next;
     }
-    if (!curr) enqueue(rr->lru, rr->running);
+    if (!found) enqueue(rr->lru, rr->running);
 
-    printf("%ld,RUNNING,process-name=%s,remaining-time=%lld", rr->time, rr->running->name, rr->running->remaining);
+    printf("%ld,RUNNING,process-name=%s,remaining-time=%ld", rr->time, rr->running->name, rr->running->remaining);
 
     switch (rr->opts->mem) {
         case FIRST_FIT:
@@ -195,5 +196,6 @@ void rr_free(rr_t* rr) {
     queue_free(rr->ready, (void*) process_free);
     queue_free(rr->processes, (void*) process_free);
     free(rr->lru);
+    mem_struct_free(rr->mem);
     free(rr);
 }
