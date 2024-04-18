@@ -4,6 +4,8 @@
 #include "memory.h"
 #include "process.h"
 
+#define MIN(a, b) (a < b ? a : b)
+
 
 // End of Definitions ------------------------------------------------------------
 // -------------------------------------------------------------------------------
@@ -43,9 +45,9 @@ int mem_alloc(mem_t* mem, process_t* p) {
         case FIRST_FIT:
             return first_fit(mem->data, p);
         case PAGED:
-            return page_fit(mem->data, p);
+            return fit_pages(mem->data, p);
         case VIRTUAL:
-            return 0;
+            return allocate_pages(mem->data, p);
     }
 
     return 0;
@@ -59,10 +61,28 @@ void mem_free(mem_t* mem, process_t* p) {
         case FIRST_FIT:
             return free_block(mem->data, p);
         case PAGED:
-            return evict_pages(mem->data, p);
+            return evict_all_pages(mem->data, p);
         case VIRTUAL:
-            break;
+            return evict_pages(mem->data, p);
     }
+}
+
+// Checks whether a process has enough memory to run
+// Returns 1 if the process can run, 0 otherwise
+int mem_check(mem_t* mem, process_t* p) {
+    switch (mem->type) {
+        case INFINITE:
+            return 1;
+        case FIRST_FIT:
+            return p->mem != NULL;
+        case PAGED:
+            return p->mem != NULL;
+        case VIRTUAL:
+            page_table_t* table = (page_table_t*) p->mem;
+            return (table->allocated == table->n_pages || table->allocated == MIN_PAGES);
+    }
+
+    return 0;
 }
 
 // Frees the memory structure and the internally used memory type struct
@@ -336,13 +356,18 @@ page_table_t* page_table_init(size_t mem_size) {
     table->n_pages = ceil(mem_size / (double) FRAME_SIZE);
     table->pages = malloc(sizeof(*table->pages) * table->n_pages);
     assert(table->pages);
+    table->allocated = 0;
+
+    for (int i = 0; i < table->n_pages; i++) {
+        table->pages[i] = -1;
+    }
     
     return table;
 }
 
 // Tries to allocate memorty to a given process using paged memory
 // Returns 0 if unsuccessful, the amount of memory allocated otherwise
-int page_fit(paged_mem_t* mem, process_t* p) {
+int fit_pages(paged_mem_t* mem, process_t* p) {
     if (p->mem_size > mem->allocatable) {
         // Cannot allocate any memory
         return 0;
@@ -360,6 +385,7 @@ int page_fit(paged_mem_t* mem, process_t* p) {
        table->pages[i] = frame;
        mem->frames[frame] = 1;
        mem->allocatable -= FRAME_SIZE;
+       table->allocated += 1;
     }
 
     mem->used += p->mem_size;
@@ -369,7 +395,7 @@ int page_fit(paged_mem_t* mem, process_t* p) {
 }
 
 // Evicts the pages used by a provided process
-void evict_pages(paged_mem_t* mem, process_t* p) {
+void evict_all_pages(paged_mem_t* mem, process_t* p) {
     if (!p->mem) return;
 
     page_table_t* table = (page_table_t*) p->mem;
@@ -385,4 +411,56 @@ void evict_pages(paged_mem_t* mem, process_t* p) {
     free(table->pages);
     free(table);
     p->mem = NULL;
+}
+
+// Tries to allocate as many pages as possible to the process
+// Returns 0 if unsuccessful, the number of pages allocated otherwise;
+int allocate_pages(paged_mem_t* mem, process_t* p) {
+    // Not enough pages to allocate
+    if (mem->allocatable < FRAME_SIZE * MIN_PAGES) return 0;
+
+    int to_allocate = MIN(mem->allocatable / FRAME_SIZE, ceil(p->mem_size / FRAME_SIZE));
+
+
+    page_table_t* table = page_table_init(p->mem_size);
+
+    int frame = 0;
+    for (int i = 0; i < to_allocate; i++) {
+       // Should never go past max index since memory is allocatable
+       // Find the next unallocated frame
+       while (mem->frames[frame]) frame++;
+
+       // Allocate frame
+       table->pages[i] = frame;
+       mem->frames[frame] = 1;
+       mem->allocatable -= FRAME_SIZE;
+       table->allocated += 1;
+    }
+
+    mem->used += to_allocate * FRAME_SIZE;
+    p->mem = table;
+
+    return to_allocate;
+}
+
+// Evicts enough pages of a process for another process to run
+void evict_pages(paged_mem_t* mem, process_t* p) {
+    page_table_t* table = (page_table_t*) p->mem;
+    int page = 0;
+    int frame;
+    int deallocated = 0;
+
+    while (page < table->n_pages && mem->allocatable < FRAME_SIZE * MIN_PAGES) {
+        // Find the next allocated page
+        while (table->pages[page] != -1) page++;
+
+        frame = table->pages[page];
+        table->pages[page] = -1;
+        mem->frames[frame] = 0;
+        table->allocated -= 1;
+        mem->allocatable += FRAME_SIZE;
+        deallocated += 1;
+    }
+
+    mem->used -= deallocated * FRAME_SIZE;
 }

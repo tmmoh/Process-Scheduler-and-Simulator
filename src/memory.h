@@ -8,6 +8,7 @@
 
 #define MAX_MEM 2048
 #define FRAME_SIZE 4
+#define MIN_PAGES 4
 
 // Visible interface for memory management
 
@@ -72,6 +73,7 @@ typedef struct paged_mem {
 typedef struct page_table {
     int* pages;
     int n_pages;
+    int allocated;
 } page_table_t;
 
 // Initialises unallocated paged memory of size MAX_MEM and frame size FRAME_SIZE
@@ -82,9 +84,16 @@ page_table_t* page_table_init(size_t mem_size);
 
 // Tries to allocate memorty to a given process using paged memory
 // Returns 0 if unsuccessful, the amount of memory allocated otherwise
-int page_fit(paged_mem_t* mem, process_t* p);
+int fit_pages(paged_mem_t* mem, process_t* p);
 
 // Evicts the pages used by a provided process
+void evict_all_pages(paged_mem_t* mem, process_t* p);
+
+// Tries to allocate as many pages as possible to the process
+// Returns 0 if unsuccessful, the number of pages allocated otherwise;
+int allocate_pages(paged_mem_t* mem, process_t* p);
+
+// Evicts enough pages of a process for another process to run
 void evict_pages(paged_mem_t* mem, process_t* p);
 
 #endif
