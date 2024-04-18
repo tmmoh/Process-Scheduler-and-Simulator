@@ -8,6 +8,33 @@
 #define TWO_DP(x) (round(x * 100.0) / 100.0)
 #define MIN(a, b) (a < b ? a : b)
 
+#pragma region Round Robin Scheduler Method Definitions
+
+// Simulates only one cycle of the configured scheduler
+void rr_simulate_cycle(rr_t* rr);
+
+// Starts the next process in the scheduler's ready queue
+void rr_start_next(rr_t* rr);
+
+// Places a process in the scheduler's ready queue
+void rr_ready_process(rr_t* rr, process_t* process);
+
+// Fishes a process's execution and prints scheduler statistics
+void rr_finish_process(rr_t* rr);
+
+// Evicts all pages used by the least recently used process
+void rr_evict_lru(rr_t* rr);
+
+// Frees the scheduler and all associated data structures
+void rr_free(rr_t* rr);
+
+
+#pragma endregion
+
+#pragma region Round Robin Scheduler Method Implemenations
+
+// Creates and returns a new round-robing scheduler
+// Configures the scheduler according the run_options
 rr_t* new_rr(run_opts_t* opts) {
     rr_t* rr = malloc(sizeof(*rr));
     assert(rr);
@@ -28,38 +55,25 @@ rr_t* new_rr(run_opts_t* opts) {
     return rr;
 }
 
+// Add's a process to round-scheduler
+// The process will be readied and run when it "arrives"
 void rr_add_process(rr_t* rr, process_t* process) {
     enqueue(rr->processes, process);
 }
 
-void rr_ready_process(rr_t* rr, process_t* process) {
-    enqueue(rr->ready, process);
-}
-
+// Simulates the entirety of the configured scheduler
 void rr_simulate(rr_t* rr) {
     while (rr->running || rr->processes->len > 0) {
         rr_simulate_cycle(rr);
     }
 
-    printf("Turnaround time %.0f\n", round(rr->total_turnaround / rr->process_count));
+    printf("Turnaround time %.0f\n", round(rr->total_turnaround / (long double)rr->process_count));
     printf("Time overhead %.2f %.2f\n", TWO_DP(rr->max_overhead), TWO_DP(rr->total_overhead / rr->process_count));
-    printf("Makespan %ld\n", rr->time);
+    printf("Makespan %lld\n", rr->time);
+    rr_free(rr);
 }
 
-void rr_evict_lru(rr_t* rr) {
-    process_t* lru = dequeue(rr->lru);
-
-    printf("%ld,EVICTED,evicted-frames=[", rr->time);
-    for (int i = 0; i < ((page_table_t*) lru->mem)->n_pages; i++) {
-        if (i != 0) printf(",");
-        printf("%d", ((page_table_t*) lru->mem)->pages[i]);
-    }
-    printf("]\n");
-
-    mem_free(rr->mem, lru);
-    lru->mem = NULL;
-}
-
+// Simulates only one cycle of the configured scheduler
 void rr_simulate_cycle(rr_t* rr) {
     // Check if a new process is ready to be added
     int arrival;
@@ -82,6 +96,7 @@ void rr_simulate_cycle(rr_t* rr) {
     // Check if there's waiting ready processes
     if (rr->ready->len > 0) {
         if (rr->running) rr_ready_process(rr, rr->running);
+
 
         switch(rr->opts->mem) {
             case INFINITE:
@@ -114,6 +129,12 @@ void rr_simulate_cycle(rr_t* rr) {
     }
 }
 
+// Places a process in the scheduler's ready queue
+void rr_ready_process(rr_t* rr, process_t* process) {
+    enqueue(rr->ready, process);
+}
+
+// Fishes a process's execution and prints scheduler statistics
 void rr_finish_process(rr_t* rr) {
 
     node_t* curr = rr->lru->head;
@@ -127,7 +148,7 @@ void rr_finish_process(rr_t* rr) {
     
 
     if (rr->opts->mem == PAGED) {
-        printf("%ld,EVICTED,evicted-frames=[", rr->time);
+        printf("%lld,EVICTED,evicted-frames=[", rr->time);
         for (int i = 0; i < ((page_table_t*) rr->running->mem)->n_pages; i++) {
             if (i != 0) printf(",");
             printf("%d", ((page_table_t*) rr->running->mem)->pages[i]);
@@ -137,7 +158,7 @@ void rr_finish_process(rr_t* rr) {
 
     mem_free(rr->mem, rr->running);
     
-    printf("%ld,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
+    printf("%lld,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
 
     int turnaround = rr->time - rr->running->arrived;
     rr->process_count += 1;
@@ -151,7 +172,7 @@ void rr_finish_process(rr_t* rr) {
     rr->running = NULL;
 }
 
-
+// Starts the next process in the scheduler's ready queue
 void rr_start_next(rr_t* rr) {
     rr->running = dequeue(rr->ready);
     
@@ -169,7 +190,7 @@ void rr_start_next(rr_t* rr) {
     }
     if (!found) enqueue(rr->lru, rr->running);
 
-    printf("%ld,RUNNING,process-name=%s,remaining-time=%ld", rr->time, rr->running->name, rr->running->remaining);
+    printf("%lld,RUNNING,process-name=%s,remaining-time=%ld", rr->time, rr->running->name, rr->running->remaining);
 
     switch (rr->opts->mem) {
         case FIRST_FIT:
@@ -192,6 +213,22 @@ void rr_start_next(rr_t* rr) {
     printf("\n");
 }
 
+// Evicts all pages used by the least recently used process
+void rr_evict_lru(rr_t* rr) {
+    process_t* lru = dequeue(rr->lru);
+
+    printf("%lld,EVICTED,evicted-frames=[", rr->time);
+    for (int i = 0; i < ((page_table_t*) lru->mem)->n_pages; i++) {
+        if (i != 0) printf(",");
+        printf("%d", ((page_table_t*) lru->mem)->pages[i]);
+    }
+    printf("]\n");
+
+    mem_free(rr->mem, lru);
+    lru->mem = NULL;
+}
+
+// Frees the scheduler and all associated data structures
 void rr_free(rr_t* rr) {
     queue_free(rr->ready, (void*) process_free);
     queue_free(rr->processes, (void*) process_free);
@@ -199,3 +236,5 @@ void rr_free(rr_t* rr) {
     mem_struct_free(rr->mem);
     free(rr);
 }
+
+#pragma endregion

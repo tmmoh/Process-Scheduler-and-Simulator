@@ -41,9 +41,9 @@ int main(int argc, char** argv) {
 
     // Simulate the round robin scheduler
     rr_simulate(rr);
+    rr = NULL;
 
     // Free all used data structures
-    rr_free(rr);
     free(run_opts);
     fclose(input);
 

@@ -16,10 +16,10 @@ typedef struct process process_t;
 
 // Struct to hold all the information relating to a process
 struct process {
-    size_t arrived; // Time the process arrived, int in range [0, 2^32)
+    unsigned long arrived; // Time the process arrived, int in range [0, 2^32)
     char* name; // Name of the process
-    size_t service; // Service time of the process, int in range [1, 2^32)
-    size_t remaining; // Remaining time for the process to complete
+    unsigned long service; // Service time of the process, int in range [1, 2^32)
+    unsigned long remaining; // Remaining time for the process to complete
     int mem_size; // Size of the required memory
     void* mem; // Pointer to the allocated memory, type varies depending on memory allocation method
 };

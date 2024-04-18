@@ -36,6 +36,7 @@ mem_t* mem_init(mem_opt_t type) {
 // Tries to allocate memory to given process
 // Returns 0 if unsuccessful, the amount of memory allocated otherwise
 int mem_alloc(mem_t* mem, process_t* p) {
+
     switch (mem->type) {
         case INFINITE:
             return 0;
