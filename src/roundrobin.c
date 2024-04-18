@@ -40,7 +40,7 @@ rr_t* new_rr(run_opts_t* opts) {
     rr->ready = new_queue();
     rr->processes = new_queue();
     rr->process_count = 0;
-    rr->total_turnaround = 0;
+    rr->avg_turnaround = 0;
     rr->total_overhead = 0;
     rr->max_overhead = 0;
     rr->lru = new_queue();
@@ -62,7 +62,7 @@ void rr_simulate(rr_t* rr) {
         rr_simulate_cycle(rr);
     }
 
-    printf("Turnaround time %.0f\n", ceil(rr->total_turnaround / (long double)rr->process_count));
+    printf("Turnaround time %.0f\n", ceil(rr->avg_turnaround));
     printf("Time overhead %.2f %.2f\n", TWO_DP(rr->max_overhead), TWO_DP(rr->total_overhead / rr->process_count));
     printf("Makespan %lld\n", rr->time);
     rr_free(rr);
@@ -158,7 +158,9 @@ void rr_finish_process(rr_t* rr) {
 
     int turnaround = rr->time - rr->running->arrived;
     rr->process_count += 1;
-    rr->total_turnaround += turnaround;
+    rr->avg_turnaround /= rr->process_count;
+    rr->avg_turnaround *= rr->process_count - 1;
+    rr->avg_turnaround += turnaround / (long double) rr->process_count;
     
     double overhead = (double) turnaround / (double) rr->running->service;
     rr->total_overhead += overhead;

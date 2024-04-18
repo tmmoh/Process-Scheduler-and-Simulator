@@ -16,9 +16,9 @@ typedef struct rr_scheduler {
     queue_t* lru;
     mem_t* mem;
     size_t process_count;
-    unsigned long long total_turnaround;
-    double total_overhead;
-    double max_overhead;
+    long double avg_turnaround;
+    long double total_overhead;
+    long double max_overhead;
 } rr_t;
 
 // Creates and returns a new round-robing scheduler
