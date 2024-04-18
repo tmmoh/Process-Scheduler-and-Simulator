@@ -8,7 +8,6 @@
 #define TWO_DP(x) (round(x * 100.0) / 100.0)
 #define MIN(a, b) (a < b ? a : b)
 
-#pragma region Round Robin Scheduler Method Definitions
 
 // Simulates only one cycle of the configured scheduler
 void rr_simulate_cycle(rr_t* rr);
@@ -28,10 +27,6 @@ void rr_evict_lru(rr_t* rr);
 // Frees the scheduler and all associated data structures
 void rr_free(rr_t* rr);
 
-
-#pragma endregion
-
-#pragma region Round Robin Scheduler Method Implemenations
 
 // Creates and returns a new round-robing scheduler
 // Configures the scheduler according the run_options
@@ -247,5 +242,3 @@ void rr_free(rr_t* rr) {
     mem_struct_free(rr->mem);
     free(rr);
 }
-
-#pragma endregion
