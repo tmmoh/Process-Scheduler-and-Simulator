@@ -70,7 +70,7 @@ void rr_simulate(rr_t* rr) {
     printf("Turnaround time %.0f\n", round(rr->total_turnaround / (long double)rr->process_count));
     printf("Time overhead %.2f %.2f\n", TWO_DP(rr->max_overhead), TWO_DP(rr->total_overhead / rr->process_count));
     printf("Makespan %lld\n", rr->time);
-    rr_free(rr);
+    //rr_free(rr);
 }
 
 // Simulates only one cycle of the configured scheduler
@@ -105,18 +105,22 @@ void rr_simulate_cycle(rr_t* rr) {
                 break;
             case FIRST_FIT:
                 // Find the next process with allocated memory or can allocate memory
-                while (!((process_t*) rr->ready->head->data)->mem && !mem_alloc(rr->mem, rr->ready->head->data)) {
+                while (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
                     requeue_head(rr->ready);
                 }
                 rr_start_next(rr);
                 break;
             case PAGED:
-                while (!((process_t*) rr->ready->head->data)->mem && !mem_alloc(rr->mem, rr->ready->head->data)) {
+                while (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
                     rr_evict_lru(rr);
                 }
                 rr_start_next(rr);
                 break;
             case VIRTUAL:
+                while (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
+                    rr_evict_lru(rr);
+                }
+                rr_start_next(rr);
                 break;
         }
     }
@@ -147,16 +151,13 @@ void rr_finish_process(rr_t* rr) {
     }
     
 
-    if (rr->opts->mem == PAGED) {
+    if (rr->opts->mem == PAGED || rr->opts->mem == VIRTUAL) {
         printf("%lld,EVICTED,evicted-frames=[", rr->time);
-        for (int i = 0; i < ((page_table_t*) rr->running->mem)->n_pages; i++) {
-            if (i != 0) printf(",");
-            printf("%d", ((page_table_t*) rr->running->mem)->pages[i]);
-        }
+    }
+    mem_free(rr->mem, rr->running);
+    if (rr->opts->mem == PAGED || rr->opts->mem == VIRTUAL) {
         printf("]\n");
     }
-
-    mem_free(rr->mem, rr->running);
     
     printf("%lld,FINISHED,process-name=%s,proc-remaining=%ld\n", rr->time, rr->running->name, rr->ready->len);
 
@@ -205,6 +206,12 @@ void rr_start_next(rr_t* rr) {
             printf("]");
             break;
         case VIRTUAL:
+            printf(",mem-usage=%d%%,mem-frames=[", mem_usage(rr->mem));
+            for (int i = 0; i < ((page_table_t*) rr->running->mem)->n_pages; i++) {
+                if (i != 0) printf(",");
+                printf("%d", ((page_table_t*) rr->running->mem)->pages[i]);
+            }
+            printf("]");
             break;
         case INFINITE:
             break;
@@ -218,14 +225,10 @@ void rr_evict_lru(rr_t* rr) {
     process_t* lru = dequeue(rr->lru);
 
     printf("%lld,EVICTED,evicted-frames=[", rr->time);
-    for (int i = 0; i < ((page_table_t*) lru->mem)->n_pages; i++) {
-        if (i != 0) printf(",");
-        printf("%d", ((page_table_t*) lru->mem)->pages[i]);
-    }
+    mem_free(rr->mem, lru);
     printf("]\n");
 
-    mem_free(rr->mem, lru);
-    lru->mem = NULL;
+
 }
 
 // Frees the scheduler and all associated data structures

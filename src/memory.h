@@ -36,6 +36,10 @@ void mem_struct_free(mem_t* mem);
 // Returns the percentage of used memory for the provided mem struct
 int mem_usage(mem_t* mem);
 
+// Checks whether a process has enough memory to run
+// Returns 1 if the process can run, 0 otherwise
+int mem_check(mem_t* mem, process_t* p);
+
 // Contiguous memory structures and methods definitions --------------------------
 // -------------------------------------------------------------------------------
 typedef struct mem_block mem_block_t;

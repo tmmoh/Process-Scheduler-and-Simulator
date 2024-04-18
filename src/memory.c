@@ -3,6 +3,8 @@
 #include <math.h>
 #include "memory.h"
 #include "process.h"
+#include <stdio.h>
+#include <string.h>
 
 #define MIN(a, b) (a < b ? a : b)
 
@@ -30,6 +32,8 @@ mem_t* mem_init(mem_opt_t type) {
             mem->data = paged_mem_init();
             break;
         case VIRTUAL:
+            mem->data = paged_mem_init();
+            break;
     }
 
     return mem;
@@ -65,6 +69,8 @@ void mem_free(mem_t* mem, process_t* p) {
         case VIRTUAL:
             return evict_pages(mem->data, p);
     }
+
+    return;
 }
 
 // Checks whether a process has enough memory to run
@@ -78,6 +84,7 @@ int mem_check(mem_t* mem, process_t* p) {
         case PAGED:
             return p->mem != NULL;
         case VIRTUAL:
+            if (!p->mem) return 0;
             page_table_t* table = (page_table_t*) p->mem;
             return (table->allocated == table->n_pages || table->allocated == MIN_PAGES);
     }
@@ -329,6 +336,8 @@ void free_block(cont_mem_t* mem, process_t* process) {
         free(next);
         return;
     }
+
+    return;
 }
 
 
@@ -403,6 +412,8 @@ void evict_all_pages(paged_mem_t* mem, process_t* p) {
     // Free every frame used by the process
     for (int i = 0; i < table->n_pages; i++) {
         mem->frames[table->pages[i]] = 0;
+        if (i != 0) printf(",");
+        printf("%d", table->pages[i]);
     }
 
     mem->allocatable += table->n_pages * FRAME_SIZE;
@@ -411,6 +422,8 @@ void evict_all_pages(paged_mem_t* mem, process_t* p) {
     free(table->pages);
     free(table);
     p->mem = NULL;
+
+    return;
 }
 
 // Tries to allocate as many pages as possible to the process
@@ -449,6 +462,7 @@ void evict_pages(paged_mem_t* mem, process_t* p) {
     int page = 0;
     int frame;
     int deallocated = 0;
+    int first = 0;
 
     while (page < table->n_pages && mem->allocatable < FRAME_SIZE * MIN_PAGES) {
         // Find the next allocated page
@@ -460,7 +474,13 @@ void evict_pages(paged_mem_t* mem, process_t* p) {
         table->allocated -= 1;
         mem->allocatable += FRAME_SIZE;
         deallocated += 1;
+
+        if (!first) printf(",");
+        printf("%d", table->pages[page]);
+        first = 1;
     }
 
     mem->used -= deallocated * FRAME_SIZE;
+
+    return;
 }
