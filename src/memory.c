@@ -105,6 +105,8 @@ void mem_struct_free(mem_t* mem) {
             free(mem->data);
             break;
         case VIRTUAL:
+            free(((paged_mem_t*) mem->data)->frames);
+            free(mem->data);
             break;
     }
 
@@ -437,8 +439,10 @@ int allocate_pages(paged_mem_t* mem, process_t* p) {
     if (mem->allocatable < FRAME_SIZE * MIN_PAGES) return 0;
 
     int to_allocate = MIN(mem->allocatable / FRAME_SIZE, ceil(p->mem_size / FRAME_SIZE));
+    
 
-
+    // TODO: Fix reallocation to use existing allocated frames
+    if (p->mem) { free(((page_table_t*) p->mem)->pages); free(p->mem); }
     page_table_t* table = page_table_init(p->mem_size);
 
     int frame = 0;

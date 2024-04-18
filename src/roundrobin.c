@@ -70,7 +70,7 @@ void rr_simulate(rr_t* rr) {
     printf("Turnaround time %.0f\n", ceil(rr->total_turnaround / (long double)rr->process_count));
     printf("Time overhead %.2f %.2f\n", TWO_DP(rr->max_overhead), TWO_DP(rr->total_overhead / rr->process_count));
     printf("Makespan %lld\n", rr->time);
-    //rr_free(rr);
+    rr_free(rr);
 }
 
 // Simulates only one cycle of the configured scheduler

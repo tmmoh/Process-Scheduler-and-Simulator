@@ -9,7 +9,6 @@ EXE = allocate
 
 $(EXE): $(OBJ) 
 	$(CC) $(CFLAGS) -o $(EXE) $(OBJ) $(LIB)
-	mv *.o ../build
 
 clean:
 	rm -f $(OBJ) $(EXE)
