@@ -67,7 +67,7 @@ void rr_simulate(rr_t* rr) {
         rr_simulate_cycle(rr);
     }
 
-    printf("Turnaround time %.0f\n", round(rr->total_turnaround / (long double)rr->process_count));
+    printf("Turnaround time %.0f\n", ceil(rr->total_turnaround / (long double)rr->process_count));
     printf("Time overhead %.2f %.2f\n", TWO_DP(rr->max_overhead), TWO_DP(rr->total_overhead / rr->process_count));
     printf("Makespan %lld\n", rr->time);
     //rr_free(rr);
@@ -111,13 +111,13 @@ void rr_simulate_cycle(rr_t* rr) {
                 rr_start_next(rr);
                 break;
             case PAGED:
-                while (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
+                if (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
                     rr_evict_lru(rr);
                 }
                 rr_start_next(rr);
                 break;
             case VIRTUAL:
-                while (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
+                if (!mem_check(rr->mem, rr->ready->head->data) && !mem_alloc(rr->mem, rr->ready->head->data)) {
                     rr_evict_lru(rr);
                 }
                 rr_start_next(rr);
@@ -193,6 +193,7 @@ void rr_start_next(rr_t* rr) {
 
     printf("%lld,RUNNING,process-name=%s,remaining-time=%ld", rr->time, rr->running->name, rr->running->remaining);
 
+    int first = 1;
     switch (rr->opts->mem) {
         case FIRST_FIT:
             printf(",mem-usage=%d%%,allocated-at=%d", mem_usage(rr->mem), ((mem_block_t*) ((node_t*) rr->running->mem)->data)->start);
@@ -200,7 +201,7 @@ void rr_start_next(rr_t* rr) {
         case PAGED:
             printf(",mem-usage=%d%%,mem-frames=[", mem_usage(rr->mem));
             for (int i = 0; i < ((page_table_t*) rr->running->mem)->n_pages; i++) {
-                if (i != 0) printf(",");
+                first ? first = 0 : printf(",");
                 printf("%d", ((page_table_t*) rr->running->mem)->pages[i]);
             }
             printf("]");
@@ -208,8 +209,11 @@ void rr_start_next(rr_t* rr) {
         case VIRTUAL:
             printf(",mem-usage=%d%%,mem-frames=[", mem_usage(rr->mem));
             for (int i = 0; i < ((page_table_t*) rr->running->mem)->n_pages; i++) {
-                if (i != 0) printf(",");
-                printf("%d", ((page_table_t*) rr->running->mem)->pages[i]);
+                
+                if (((page_table_t*) rr->running->mem)->pages[i] != -1) {
+                    first ? first = 0 : printf(",");
+                    printf("%d", ((page_table_t*) rr->running->mem)->pages[i]);
+                }
             }
             printf("]");
             break;
@@ -222,13 +226,17 @@ void rr_start_next(rr_t* rr) {
 
 // Evicts all pages used by the least recently used process
 void rr_evict_lru(rr_t* rr) {
-    process_t* lru = dequeue(rr->lru);
+    node_t* curr = rr->lru->head;
 
     printf("%lld,EVICTED,evicted-frames=[", rr->time);
-    mem_free(rr->mem, lru);
+
+    do {
+        process_t* lru = (process_t*) curr->data;
+        mem_free(rr->mem, lru);
+        curr = curr->next;
+    } while (!mem_alloc(rr->mem, rr->ready->head->data));
+
     printf("]\n");
-
-
 }
 
 // Frees the scheduler and all associated data structures
